@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VERO — Mentor de Comunicação</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Source+Serif+4:ital,wght@0,300;0,400;0,600;1,300&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body,#app{height:100%;overflow:hidden}
+body{font-family:'Source Serif 4',Georgia,serif;background:#faf6ef;color:#2c1810}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:#c8b8a0;border-radius:4px}
+textarea{font-family:inherit;resize:none}
+textarea::placeholder{color:#c0b09a}
+textarea:focus{outline:none}
+button{font-family:inherit;cursor:pointer;transition:all .2s}
+@keyframes fadeIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+.msg{animation:fadeIn .3s ease}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script type="module">
+import{h,render}from'https://esm.sh/preact@10';
+import{useState,useRef,useEffect}from'https://esm.sh/preact@10/hooks';
+import htm from'https://esm.sh/htm@3';
+const html=htm.bind(h);
+
+const API_KEY="SUA_CHAVE_AQUI";
+
+const SYS="Voce e o VERO, mentor pessoal de comunicacao da Nara, lider e empreendedora brasileira. Ensine Nara a comunicar com clareza, autoridade e elegancia na fala e na escrita. Sobre a Nara: lider, empreendedora, fundou o NEXA (sistema de analise de credito PJ), quer conversar bem com qualquer pessoa, escrever com impacto e usar vocabulario sofisticado naturalmente. Os 3 niveis: 1 CLAREZA DE PENSAMENTO organizar ideias antes de falar ou escrever. 2 TECNICA frases fortes estrutura clara tom certo. 3 POSICIONAMENTO comunicar como lider influenciar gerar acao. Como ensina: corrige e reescreve textos mostrando antes e depois, simula conversas dificeis para treino, da modelos mentais simples, provoca reformula isso fala mais direto qual e o objetivo, ensina vocabulario sofisticado com exemplos de uso natural. SEMPRE em portugues brasileiro. Seja direta acolhedora nunca generica.";
+
+const MODS=[
+  {id:"conversas",icon:"◎",label:"Conversar",  p:"Quero aprender a conversar bem com qualquer tipo de pessoa. Me de uma licao pratica com exercicio."},
+  {id:"escrita",  icon:"✦",label:"Escrever",   p:"Quero escrever e-mails e mensagens mais poderosos. Me ensine com exemplos reais."},
+  {id:"lider",    icon:"▲",label:"Lideranca",  p:"Como desenvolvo um tom de autoridade e lideranca na minha comunicacao sem parecer agressiva?"},
+  {id:"feedback", icon:"⟳",label:"Feedback",   p:"Me ensine a dar feedback dificil de forma clara e respeitosa. Quero exemplos praticos."},
+  {id:"vocab",    icon:"◈",label:"Vocabulario",p:"Quero ampliar meu vocabulario e usar palavras mais sofisticadas naturalmente. Por onde comeco?"},
+  {id:"revisao",  icon:"✎",label:"Revisar",    p:"Quero colar um texto meu para voce analisar e melhorar. Pode me orientar?"},
+];
+
+const TRILHAS=[
+  {id:"conversas",icon:"◎",titulo:"Conversar com qualquer pessoa",cor:"#2255b8",fases:[
+    {f:"Fundacao",h:["Escuta ativa — ouvir para entender, nao para responder","Perguntas abertas que fazem o outro falar","Presenca — olhos, postura, silencio estrategico","Adaptar o tom para cada tipo de pessoa"]},
+    {f:"Dominio",h:["Entrar em qualquer conversa sem travar","Sair de conversas desconfortaveis com elegancia","Liderar o rumo de uma conversa sem parecer controladora","Criar conexao rapida com pessoas diferentes"]},
+    {f:"Influencia",h:["Convencer sem impor","Conduzir conversas dificeis — conflito, desligamento","Ser lembrada pelas palavras que escolhe"]},
+  ]},
+  {id:"escrita",icon:"✦",titulo:"Escrever bem",cor:"#e87218",fases:[
+    {f:"Fundacao",h:["1 ideia principal por mensagem — sem misturar assuntos","Comecar pelo objetivo, nao pela explicacao","Eliminar palavras desnecessarias","Pontuacao que da ritmo certo a leitura"]},
+    {f:"Dominio",h:["E-mails com estrutura: contexto, pedido, proximo passo","Mensagens que geram resposta, nao so leitura","Adaptar tom: profissional, estrategico, emocional","Relatorios e propostas com clareza"]},
+    {f:"Influencia",h:["Textos que movem pessoas a agir","Escrever como lider — peso e autoridade nas palavras","Apresentacoes escritas que vendem ideias"]},
+  ]},
+  {id:"vocab",icon:"▲",titulo:"Vocabulario e Impacto",cor:"#7b3fa0",fases:[
+    {f:"Fundacao",h:["Substituir palavras fracas por palavras precisas","Eliminar vicios — ne, tipo, ai, entao","Usar conectivos que dao fluidez ao raciocinio","Aprender 3 palavras novas por semana e usa-las"]},
+    {f:"Dominio",h:["Vocabulario de lideranca — termos que posicionam","Palavras sofisticadas usadas naturalmente","Metaforas e analogias que simplificam o complexo","Tom assertivo: firme sem ser agressiva"]},
+    {f:"Influencia",h:["Escolher a palavra certa para cada situacao","Ter um repertorio culto mas acessivel","Falar de forma que as pessoas sintam sua inteligencia"]},
+  ]},
+];
+
+const PALAVRAS=[
+  {p:"Assertiva",   s:"Expressa o que pensa com clareza e respeito, sem agressividade.",   e:"Sua postura assertiva na reuniao foi decisiva."},
+  {p:"Ponderar",    s:"Avaliar com cuidado antes de decidir ou falar.",                     e:"Precisamos ponderar os riscos antes de avancar."},
+  {p:"Suscitar",    s:"Provocar, despertar, causar algo.",                                  e:"A proposta suscitou duvidas na diretoria."},
+  {p:"Perspicaz",   s:"Que percebe e analisa com rapidez e profundidade.",                  e:"Sua analise foi perspicaz e surpreendeu a equipe."},
+  {p:"Coerencia",   s:"Alinhamento entre o que se diz, pensa e faz.",                      e:"Lideranca sem coerencia perde credibilidade."},
+  {p:"Deliberado",  s:"Feito com intencao clara, nao por acaso.",                          e:"Foi uma escolha deliberada de tom na apresentacao."},
+  {p:"Contundente", s:"Argumento ou fala que impacta e nao pode ser ignorado.",             e:"Ela fez uma defesa contundente da proposta."},
+  {p:"Anuencia",    s:"Concordancia, aprovacao formal.",                                    e:"Aguardamos a anuencia da diretoria para prosseguir."},
+];
+
+const CONQUISTAS=[
+  "Iniciou a jornada de comunicacao consciente",
+  "Entende os 3 niveis do comunicador: pensamento, tecnica, influencia",
+  "Sabe o que e um mentor e como usar um",
+  "Reconhece que escrever mal e quase sempre pensar mal estruturado",
+  "Criou seu sistema pessoal de evolucao com o VERO",
+];
+
+function fmt(t){
+  return t.replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+          .replace(/\*(.*?)\*/g,'<em>$1</em>')
+          .replace(/\n/g,'<br>');
+}
+
+function Avatar(){
+  return html`<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#0f2d6e,#2255b8);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;flex-shrink:0;margin-top:2px;font-family:'Cormorant Garamond',Georgia,serif;box-shadow:0 2px 8px rgba(15,45,110,.28)">V</div>`;
+}
+
+function Chat(){
+  const[msgs,setMsgs]=useState([{r:'a',c:"Ola, Nara! Sou o **VERO**, seu mentor de comunicacao.\n\nEstou aqui para te ajudar a **conversar com qualquer pessoa**, escrever com mais impacto e usar palavras que posicionam voce como lider.\n\nEscolha um modulo acima ou me diga: **qual e o maior desafio na sua comunicacao hoje?**"}]);
+  const[inp,setInp]=useState('');
+  const[load,setLoad]=useState(false);
+  const[mod,setMod]=useState(null);
+  const fim=useRef(null);
+  useEffect(()=>{fim.current&&fim.current.scrollIntoView({behavior:'smooth'});},[msgs]);
+
+  async function send(txt){
+    if(!txt.trim()||load)return;
+    const h2=[...msgs,{r:'u',c:txt}];
+    setMsgs(h2);setInp('');setLoad(true);
+    try{
+      const res=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':API_KEY,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:SYS,
+          messages:h2.map(m=>({role:m.r==='u'?'user':'assistant',content:m.c}))})
+      });
+      const d=await res.json();
+      setMsgs([...h2,{r:'a',c:(d.content&&d.content[0]&&d.content[0].text)||'Erro na resposta.'}]);
+    }catch(e){
+      setMsgs([...h2,{r:'a',c:'Erro de conexao. Verifique a chave de API.'}]);
+    }finally{setLoad(false);}
+  }
+
+  function selMod(m){setMod(m.id);send(m.p);}
+
+  return html`<div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+    <div style="display:flex;gap:6px;padding:10px 18px;background:#fff;border-bottom:1px solid #e8ddd0;overflow-x:auto;flex-shrink:0">
+      ${MODS.map(m=>html`<button key=${m.id} onClick=${()=>selMod(m)} style="display:flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;border:1px solid ${mod===m.id?'#2255b8':'#d4c8b8'};background:${mod===m.id?'#eef2fc':'transparent'};color:${mod===m.id?'#2255b8':'#7a6450'};font-size:12px;white-space:nowrap;font-weight:${mod===m.id?'600':'normal'}">
+        <span>${m.icon}</span><span>${m.label}</span>
+      </button>`)}
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px 18px;display:flex;flex-direction:column;gap:14px">
+      ${msgs.map((msg,i)=>html`<div key=${i} class="msg" style="display:flex;justify-content:${msg.r==='u'?'flex-end':'flex-start'};gap:10px">
+        ${msg.r==='a'&&html`<${Avatar}/>`}
+        <div style="max-width:76%;background:${msg.r==='u'?'linear-gradient(135deg,#0f2d6e,#2255b8)':'#fff'};color:${msg.r==='u'?'#fff':'#2c1810'};border:${msg.r==='u'?'none':'1px solid #e8ddd0'};border-radius:${msg.r==='u'?'18px 18px 4px 18px':'4px 18px 18px 18px'};padding:12px 16px;font-size:14px;line-height:1.8;box-shadow:${msg.r==='u'?'0 3px 12px rgba(15,45,110,.22)':'0 2px 8px rgba(0,0,0,.06)'}">
+          <span dangerouslySetInnerHTML=${{__html:fmt(msg.c)}}/>
+        </div>
+      </div>`)}
+      ${load&&html`<div style="display:flex;gap:10px;align-items:center">
+        <${Avatar}/>
+        <div style="background:#fff;border:1px solid #e8ddd0;border-radius:4px 18px 18px 18px;padding:14px 18px;display:flex;gap:5px">
+          ${[0,1,2].map(n=>html`<div key=${n} style="width:7px;height:7px;border-radius:50%;background:#2255b8;animation:pulse 1.2s ease-in-out infinite;animation-delay:${n*.2}s"/>`)}
+        </div>
+      </div>`}
+      <div ref=${fim}/>
+    </div>
+    <div style="border-top:1px solid #e8ddd0;padding:12px 18px 16px;background:#fff;flex-shrink:0">
+      <div style="display:flex;gap:8px;align-items:flex-end;background:#faf6ef;border:1.5px solid #d4c8b8;border-radius:14px;padding:10px 13px">
+        <textarea value=${inp} onInput=${e=>setInp(e.target.value)}
+          onKeyDown=${e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send(inp);}}}
+          placeholder="Pergunte algo, cole um texto para revisar..." rows="1"
+          style="flex:1;background:transparent;border:none;color:#2c1810;font-size:14px;line-height:1.6;max-height:100px"/>
+        <button onClick=${()=>send(inp)} disabled=${load||!inp.trim()}
+          style="background:${inp.trim()?'linear-gradient(135deg,#0f2d6e,#2255b8)':'#e8ddd0'};border:none;border-radius:10px;padding:8px 15px;color:${inp.trim()?'#fff':'#b8a890'};font-size:15px;font-weight:bold">↑</button>
+      </div>
+      <div style="font-size:9px;color:#c0b09a;margin-top:6px;text-align:center;letter-spacing:.14em">ENTER PARA ENVIAR · SHIFT+ENTER NOVA LINHA</div>
+    </div>
+  </div>`;
+}
+
+function Trilha({goChat}){
+  const[ativa,setAtiva]=useState('conversas');
+  const[hab,setHab]=useState({});
+  const t=TRILHAS.find(x=>x.id===ativa);
+  const total=t.fases.reduce((a,f)=>a+f.h.length,0);
+  const feitas=t.fases.reduce((a,f,fi)=>a+f.h.filter((_,hi)=>hab[ativa+fi+hi]).length,0);
+  const pct=total?Math.round(feitas/total*100):0;
+  const tog=k=>setHab(p=>({...p,[k]:!p[k]}));
+  return html`<div style="display:flex;flex:1;overflow:hidden">
+    <div style="width:96px;border-right:1px solid #e8ddd0;background:#fff;flex-shrink:0;overflow-y:auto">
+      ${TRILHAS.map(tr=>html`<button key=${tr.id} onClick=${()=>setAtiva(tr.id)} style="width:100%;text-align:center;padding:14px 6px;background:${ativa===tr.id?'#faf6ef':'transparent'};border:none;border-left:3px solid ${ativa===tr.id?tr.cor:'transparent'}">
+        <div style="font-size:20px;color:${tr.cor}">${tr.icon}</div>
+        <div style="font-size:10px;color:${ativa===tr.id?'#2c1810':'#b8a890'};margin-top:4px;line-height:1.3;font-weight:${ativa===tr.id?600:'normal'}">${tr.titulo}</div>
+      </button>`)}
+    </div>
+    <div style="flex:1;overflow-y:auto;padding:20px">
+      <div style="margin-bottom:18px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <span style="font-size:12px;color:#7a6450">Progresso na trilha</span>
+          <span style="font-size:13px;color:${t.cor};font-weight:600">${pct}%</span>
+        </div>
+        <div style="height:6px;background:#e8ddd0;border-radius:4px"><div style="height:100%;width:${pct}%;background:${t.cor};border-radius:4px;transition:width .5s"/></div>
+        <div style="font-size:11px;color:#b8a890;margin-top:4px">${feitas} de ${total} praticadas</div>
+      </div>
+      ${t.fases.map((fase,fi)=>{
+        const qtd=fase.h.filter((_,hi)=>hab[ativa+fi+hi]).length;
+        return html`<div key=${fi} style="margin-bottom:14px;background:#fff;border:1px solid ${fi===0?t.cor+'55':'#e8ddd0'};border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.05)">
+          <div style="padding:10px 16px;background:${fi===0?t.cor+'12':'#faf6ef'};display:flex;align-items:center;gap:10px">
+            <span style="font-size:11px;color:${fi===0?t.cor:'#b8a890'};letter-spacing:.12em;text-transform:uppercase;font-weight:600">Fase ${fi+1} — ${fase.f}</span>
+            ${fi===0&&html`<span style="font-size:9px;background:${t.cor};color:#fff;border-radius:10px;padding:2px 9px;font-weight:bold">AGORA</span>`}
+            <span style="margin-left:auto;font-size:11px;color:#b8a890">${qtd}/${fase.h.length}</span>
+          </div>
+          <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px">
+            ${fase.h.map((hh,hi)=>{
+              const k=ativa+fi+hi,feito=hab[k];
+              return html`<div key=${hi} onClick=${()=>tog(k)} style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">
+                <div style="width:18px;height:18px;border-radius:5px;flex-shrink:0;border:1.5px solid ${feito?t.cor:'#d4c8b8'};background:${feito?t.cor:'transparent'};display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .2s">
+                  ${feito&&html`<span style="font-size:10px;color:#fff;font-weight:bold">✓</span>`}
+                </div>
+                <span style="font-size:13px;color:${feito?'#c0b09a':'#2c1810'};line-height:1.55;text-decoration:${feito?'line-through':'none'}">${hh}</span>
+              </div>`;
+            })}
+          </div>
+        </div>`;
+      })}
+      <div style="padding:14px 16px;background:#fff4eb;border:1px solid #fcd29a;border-radius:12px">
+        <div style="font-size:11px;color:#e87218;letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px;font-weight:600">Como praticar</div>
+        <div style="font-size:13px;color:#7a6450;line-height:1.65">Marque uma habilidade aqui, va ao Mentor e peca uma licao ou simulacao sobre ela.</div>
+        <button onClick=${goChat} style="margin-top:10px;padding:6px 18px;background:#e87218;border:none;border-radius:20px;color:#fff;font-size:11px;font-weight:600">Ir para o Mentor →</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function Conquistas({goChat}){
+  return html`<div style="flex:1;overflow-y:auto;padding:24px 18px">
+    <div style="font-size:10px;color:#b8a890;letter-spacing:.22em;text-transform:uppercase;margin-bottom:18px">O que voce ja construiu</div>
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:540px">
+      ${CONQUISTAS.map((c,i)=>html`<div key=${i} class="msg" style="display:flex;gap:12px;align-items:flex-start;padding:14px 16px;background:#fff;border:1px solid #e8ddd0;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.05)">
+        <div style="width:28px;height:28px;border-radius:50%;background:#fff4eb;border:1.5px solid #e87218;display:flex;align-items:center;justify-content:center;color:#e87218;font-size:12px;font-weight:bold;flex-shrink:0">✓</div>
+        <div style="font-size:13px;color:#2c1810;line-height:1.65">${c}</div>
+      </div>`)}
+    </div>
+    <div style="margin-top:22px;max-width:540px;padding:16px 18px;background:#e8eef8;border:1px solid #a8c0e8;border-radius:12px">
+      <div style="font-size:11px;color:#2255b8;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;font-weight:600">Proxima conquista</div>
+      <div style="font-size:13px;color:#3a5080;line-height:1.65">Pratique uma habilidade da Trilha e marque como feita — sua primeira conquista pratica estara completa.</div>
+    </div>
+  </div>`;
+}
+
+function Palavras({goChat}){
+  const[ab,setAb]=useState(null);
+  return html`<div style="flex:1;overflow-y:auto;padding:24px 18px">
+    <div style="font-size:10px;color:#b8a890;letter-spacing:.22em;text-transform:uppercase;margin-bottom:6px">Palavras da sua evolucao</div>
+    <div style="font-size:13px;color:#b8a890;margin-bottom:20px;font-style:italic">3 por semana. Use pelo menos 1 por dia. Em 30 dias seu vocabulario muda.</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      ${PALAVRAS.map((pal,i)=>html`<div key=${i} onClick=${()=>setAb(ab===i?null:i)} style="padding:14px 16px;background:#fff;cursor:pointer;border:1px solid ${ab===i?'#7b3fa0':'#e8ddd0'};border-radius:12px;box-shadow:${ab===i?'0 4px 16px rgba(123,63,160,.12)':'0 2px 8px rgba(0,0,0,.05)'};transition:all .2s">
+        <div style="font-size:17px;color:#7b3fa0;font-weight:700;font-family:'Cormorant Garamond',Georgia,serif">${pal.p}</div>
+        ${ab===i?html`<div style="margin-top:10px">
+          <div style="font-size:12px;color:#7a6450;line-height:1.65">${pal.s}</div>
+          <div style="margin-top:8px;font-size:12px;color:#b8a890;border-left:2px solid #c8a8e0;padding-left:10px;font-style:italic">"${pal.e}"</div>
+        </div>`:html`<div style="font-size:11px;color:#c0b09a;margin-top:4px">toque para ver →</div>`}
+      </div>`)}
+    </div>
+    <div style="margin-top:22px;padding:16px 18px;background:#f5f0fd;border:1px solid #d0b8e8;border-radius:12px">
+      <div style="font-size:11px;color:#7b3fa0;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px;font-weight:600">Exercicio desta semana</div>
+      <div style="font-size:13px;color:#7a6450;line-height:1.7">Escreva 3 frases usando palavras desta lista. Cole no Mentor e peca: <em style="color:#7b3fa0">"Essas frases soam naturais e profissionais?"</em></div>
+      <button onClick=${goChat} style="margin-top:10px;padding:6px 18px;background:#7b3fa0;border:none;border-radius:20px;color:#fff;font-size:11px;font-weight:600">Ir para o Mentor →</button>
+    </div>
+  </div>`;
+}
+
+function App(){
+  const[tela,setTela]=useState('chat');
+  const[aba,setAba]=useState('trilha');
+  const goChat=()=>setTela('chat');
+
+  return html`<div style="display:flex;flex-direction:column;height:100vh;background:#faf6ef">
+    <div style="background:linear-gradient(135deg,#0f2d6e 0%,#1a4aad 60%,#0a1f5a 100%);flex-shrink:0;box-shadow:0 4px 24px rgba(15,45,110,.25)">
+      <div style="display:flex;align-items:center;padding:14px 18px 10px;border-bottom:1px solid rgba(255,255,255,.12);gap:13px">
+        <div style="width:40px;height:40px;border:2px solid rgba(255,255,255,.45);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;font-weight:700;font-family:'Cormorant Garamond',Georgia,serif">V</div>
+        <div>
+          <div style="font-size:19px;font-weight:700;color:#fff;font-family:'Cormorant Garamond',Georgia,serif;letter-spacing:.06em">VERO</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.5);letter-spacing:.22em;text-transform:uppercase;margin-top:2px">Mentor de Comunicacao · Nara</div>
+        </div>
+        <div style="margin-left:auto;display:flex;background:rgba(0,0,0,.18);border-radius:24px;padding:3px;gap:2px">
+          ${[{id:'chat',l:'◎ Mentor'},{id:'guia',l:'✦ Guia'}].map(t=>html`<button key=${t.id} onClick=${()=>setTela(t.id)} style="padding:6px 15px;border:none;border-radius:20px;background:${tela===t.id?'#fff':'transparent'};color:${tela===t.id?'#0f2d6e':'rgba(255,255,255,.75)'};font-size:11px;font-weight:${tela===t.id?600:'normal'};letter-spacing:.05em">${t.l}</button>`)}
+        </div>
+      </div>
+      ${tela==='guia'&&html`<div style="display:flex;gap:5px;padding:10px 18px">
+        ${[{id:'trilha',l:'◎ Trilha'},{id:'conquistas',l:'✦ Conquistas'},{id:'palavras',l:'▲ Vocabulario'}].map(a=>html`<button key=${a.id} onClick=${()=>setAba(a.id)} style="padding:6px 16px;border:1px solid ${aba===a.id?'rgba(255,255,255,.7)':'rgba(255,255,255,.22)'};border-radius:20px;background:${aba===a.id?'rgba(255,255,255,.2)':'transparent'};color:rgba(255,255,255,.88);font-size:11px;font-weight:${aba===a.id?600:'normal'}">${a.l}</button>`)}
+      </div>`}
+    </div>
+    ${tela==='chat'&&html`<${Chat}/>`}
+    ${tela==='guia'&&html`<div style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      ${aba==='trilha'&&html`<${Trilha} goChat=${goChat}/>`}
+      ${aba==='conquistas'&&html`<${Conquistas} goChat=${goChat}/>`}
+      ${aba==='palavras'&&html`<${Palavras} goChat=${goChat}/>`}
+    </div>`}
+  </div>`;
+}
+
+render(html`<${App}/>`,document.getElementById('app'));
+</script>
+</body>
+</html>
